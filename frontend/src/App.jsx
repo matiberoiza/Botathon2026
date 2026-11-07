@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Heart, History, LayoutDashboard, SlidersHorizontal, TriangleAlert, Users } from 'lucide-react'
+import { History, LayoutDashboard, SlidersHorizontal, TriangleAlert, Users } from 'lucide-react'
 import { api } from './api.js'
 import { useDatos } from './hooks.js'
 import EstadoConexion from './components/EstadoConexion.jsx'
@@ -9,6 +9,10 @@ import Profesionales from './pages/Profesionales.jsx'
 import Excepciones from './pages/Excepciones.jsx'
 import Parametros from './pages/Parametros.jsx'
 import Historial from './pages/Historial.jsx'
+import logoDuoc from './assets/logos/duocuc.png'
+import logoTeleton from './assets/logos/teleton.png'
+import logoTeletonRojo from './assets/logos/teleton_rojo.png'
+import logoBluePrism from './assets/logos/blueprism.png'
 
 // Secciones de la aplicación (navegación simple, sin librería de rutas)
 const SECCIONES = [
@@ -37,14 +41,22 @@ export default function App() {
         Saltar al contenido
       </a>
 
+      {/* Franja del evento: Botathon 2026 y los logos de las organizaciones */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 bg-teleton-700 px-4 py-2 text-white md:px-6">
+        <p className="text-sm font-semibold">Botathon 2026 · Desafío Teletón</p>
+        <ul className="flex flex-wrap items-center gap-x-6 gap-y-2" aria-label="Organizan">
+          <li><img src={logoDuoc} alt="Duoc UC, Escuela de Informática y Telecomunicaciones" className="h-5 w-auto md:h-6" /></li>
+          <li><img src={logoTeleton} alt="Teletón" className="h-6 w-auto md:h-7" /></li>
+          <li><img src={logoBluePrism} alt="SS&C Blue Prism" className="h-5 w-auto md:h-6" /></li>
+        </ul>
+      </div>
+
       {/* Barra superior: título, filtros globales (instituto y mes) y estado de conexión */}
-      <header className="z-20 border-t-[6px] border-b border-t-teleton-600 border-b-slate-200 bg-white md:sticky md:top-0">
+      <header className="z-20 border-b border-slate-200 bg-white md:sticky md:top-0">
         <div className="flex flex-wrap items-end justify-between gap-4 px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
-            {/* Corazón rojo como sello de la Teletón (decorativo) */}
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teleton-600" aria-hidden="true">
-              <Heart className="h-6 w-6 fill-white text-white" />
-            </span>
+            {/* Logo de la Teletón en rojo; la línea gris lo separa del título */}
+            <img src={logoTeletonRojo} alt="" className="hidden h-11 w-auto border-r border-slate-300 pr-3 sm:block" />
             <div>
               <p className="text-sm font-semibold text-teleton-700">Teletón · Planificación asistencial 2026</p>
               <h1 className="text-2xl font-extrabold">Cada hora cuenta</h1>
@@ -60,7 +72,7 @@ export default function App() {
 
       <div className="md:flex">
         {/* Barra lateral de navegación: en pantallas chicas queda como una fila arriba del contenido */}
-        <aside className="border-b border-slate-200 bg-white md:sticky md:top-[94px] md:h-[calc(100vh-94px)] md:w-60 md:shrink-0 md:border-r md:border-b-0">
+        <aside className="border-b border-slate-200 bg-white md:sticky md:top-[88px] md:h-[calc(100vh-88px)] md:w-60 md:shrink-0 md:border-r md:border-b-0">
           <nav aria-label="Secciones" className="p-3">
             <ul className="flex gap-1 overflow-x-auto md:flex-col">
               {SECCIONES.map((s) => (
