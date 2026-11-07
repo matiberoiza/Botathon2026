@@ -70,24 +70,33 @@ export default function App() {
         </div>
       </header>
 
-      <div className="md:flex">
-        {/* Barra lateral de navegación: en pantallas chicas queda como una fila arriba del contenido */}
-        <aside className="border-b border-slate-200 bg-white md:sticky md:top-[88px] md:h-[calc(100vh-88px)] md:w-60 md:shrink-0 md:border-r md:border-b-0">
-          <nav aria-label="Secciones" className="p-3">
-            <ul className="flex gap-1 overflow-x-auto md:flex-col">
+      <div className="flex">
+        {/* Barra lateral de navegación, siempre a la izquierda.
+            En pantallas angostas muestra solo los íconos; desde 768 px, ícono y texto. */}
+        <aside className="sticky top-0 h-screen w-16 shrink-0 self-start border-r border-slate-200 bg-white md:top-[88px] md:h-[calc(100vh-88px)] md:w-60">
+          <nav aria-label="Secciones" className="p-2 md:p-3">
+            <ul className="flex flex-col gap-1">
               {SECCIONES.map((s) => (
                 <li key={s.id}>
                   <button
                     type="button"
                     onClick={() => setActual(s.id)}
                     aria-current={s.id === actual ? 'page' : undefined}
-                    className={`flex w-full items-center gap-3 whitespace-nowrap rounded-md px-3 py-2 text-left text-base font-medium ${
+                    className={`group relative flex w-full items-center justify-center gap-3 whitespace-nowrap rounded-md px-3 py-2 text-left text-base font-medium md:justify-start ${
                       s.id === actual ? 'bg-teleton-50 text-teleton-800 ring-1 ring-teleton-700' : 'text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     {/* El ícono acompaña al texto: aria-hidden para que el lector de pantalla no lo repita */}
                     <s.Icono aria-hidden="true" className="h-5 w-5 shrink-0" />
-                    {s.titulo}
+                    {/* En pantallas angostas el texto queda oculto a la vista, pero el lector de pantalla lo lee */}
+                    <span className="sr-only md:not-sr-only">{s.titulo}</span>
+                    {/* Etiqueta flotante: aparece al pasar el cursor o al llegar con el teclado (solo con la barra angosta) */}
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-full top-1/2 z-30 ml-3 hidden -translate-y-1/2 rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white shadow-lg group-hover:block group-focus-visible:block md:!hidden"
+                    >
+                      {s.titulo}
+                    </span>
                   </button>
                 </li>
               ))}

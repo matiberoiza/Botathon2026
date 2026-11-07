@@ -4,7 +4,7 @@
 >
 > **Regla:** cada vez que se haga algo en el proyecto o el usuario entregue información nueva (documentos, decisiones, cambios de roles o de arquitectura), **actualiza este archivo en el mismo turno**: corrige la sección que corresponda y anota el cambio en el registro del final.
 >
-> **Última actualización:** 7 de noviembre de 2026, 09:30.
+> **Última actualización:** 7 de noviembre de 2026, 09:45.
 
 ---
 
@@ -448,3 +448,5 @@ Una línea por actualización, la más reciente al final.
 - **2026-11-07 09:00** · **Proyecto subido a GitHub** (autorizado por el equipo): repositorio público https://github.com/matiberoiza/Botathon2026, rama `main`. Se creó `.gitignore` (excluye data/raw, data/entrada, data/generados, la base `.db`, `.env`, `.venv`, `node_modules`, `dist`, cachés y `.DS_Store`). Se suben 53 archivos con código, documentos, CONTEXTO.md e INICIO.md (decisión del usuario, aunque el repo es público). El repo ya tenía un commit inicial con un README de una línea; se unió conservando el README del proyecto.
 - **2026-11-07 09:15** · **Diseño con colores Teletón** en el frontend: paleta roja propia en `index.css` (`teleton-50` a `teleton-900`, rojo de marca #e2001a), franja roja arriba de la barra superior, corazón blanco sobre círculo rojo junto al título (no se usa el logo oficial, que es marca registrada), menú activo, botones, enlaces, íconos y gráficos en rojo; en la dona, directa en rojo, indirecta en azul marino y NAS en gris. El azul queda solo en las insignias «Pendiente» y «Modificación» (información). Contraste AA verificado (rojo 700 sobre blanco 6,9:1; botón blanco sobre rojo 6,9:1). Probado en escritorio y celular, sin errores. Subido a GitHub (commit 8d7ad91).
 - **2026-11-07 09:30** · **Logos del evento en el sitio**, a pedido del usuario: se recortaron de la imagen del banner de la Botathon que envió (Duoc UC con su Escuela de Informática y Telecomunicaciones, Teletón y SS&C Blue Prism), con fondo transparente, en `frontend/src/assets/logos/` (blancos y uno de la Teletón en rojo). Franja roja arriba con «Botathon 2026 · Desafío Teletón» y los tres logos (con texto alternativo); el logo rojo de la Teletón reemplaza al corazón junto al título (decorativo, se oculta en celular porque ya está en la franja). Probado en escritorio y celular, sin errores.
+- **2026-11-07 09:40** · Menú de secciones siempre lateral (antes, bajo 768 px pasaba a una fila horizontal arriba). En pantallas angostas muestra solo los íconos (el nombre queda para lectores de pantalla y como tooltip); desde 768 px, ícono y texto. Probado a 375, 609 y 1280 px, sin errores.
+- **2026-11-07 09:45** · Etiqueta flotante con el nombre de cada sección al pasar el cursor sobre su ícono en la barra lateral angosta (también aparece al llegar con el teclado; se reemplazó el tooltip nativo, que tardaba). Con la barra ancha no aparece, porque el texto ya se ve. Ambos cambios subidos a GitHub.
