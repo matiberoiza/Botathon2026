@@ -43,7 +43,7 @@ export default function Resumen({ filtros, institutos, version }) {
           {indicadores.map((ind) => (
             <li key={ind.titulo} className="rounded-lg border border-slate-200 bg-white p-4">
               <p className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                <ind.Icono aria-hidden="true" className="h-5 w-5 text-blue-700" />
+                <ind.Icono aria-hidden="true" className="h-5 w-5 text-teleton-700" />
                 {ind.titulo}
               </p>
               <p className="mt-1 text-3xl font-bold">{ind.valor}</p>
@@ -61,9 +61,9 @@ export default function Resumen({ filtros, institutos, version }) {
       <GraficoDona
         titulo={`Distribución de las horas disponibles ${periodo}`}
         datos={[
-          { nombre: 'Atención directa', valor: k.horas_directas_mes, color: '#1d4ed8' },
-          { nombre: 'Atención indirecta', valor: k.horas_indirectas_mes, color: '#0f766e' },
-          { nombre: 'No asistencial (NAS)', valor: k.horas_nas_mes, color: '#b45309' },
+          { nombre: 'Atención directa', valor: k.horas_directas_mes, color: '#b8000f' },
+          { nombre: 'Atención indirecta', valor: k.horas_indirectas_mes, color: '#1e3a5f' },
+          { nombre: 'No asistencial (NAS)', valor: k.horas_nas_mes, color: '#78716c' },
         ]}
       />
 

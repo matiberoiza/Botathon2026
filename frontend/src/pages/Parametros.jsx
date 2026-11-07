@@ -83,7 +83,7 @@ export default function Parametros({ version, onRecalculado }) {
                     </label>
                     <div className="flex gap-2">
                       <button type="submit" disabled={guardando}
-                              className="rounded bg-blue-700 px-3 py-1 font-semibold text-white hover:bg-blue-800 disabled:bg-slate-400">
+                              className="rounded bg-teleton-700 px-3 py-1 font-semibold text-white hover:bg-teleton-800 disabled:bg-slate-400">
                         {guardando ? 'Recalculando…' : 'Guardar y recalcular'}
                       </button>
                       <button type="button" onClick={() => setEditando(null)} className="rounded border border-slate-400 px-3 py-1">
@@ -99,7 +99,7 @@ export default function Parametros({ version, onRecalculado }) {
               <td className="px-3 py-2">
                 {editando !== p.clave && (
                   <button type="button" onClick={() => abrir(p)} aria-label={`Editar ${p.clave}`}
-                          className="rounded border border-blue-700 px-3 py-1 text-blue-800">
+                          className="rounded border border-teleton-700 px-3 py-1 text-teleton-800">
                     Editar
                   </button>
                 )}

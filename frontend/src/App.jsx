@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { History, LayoutDashboard, SlidersHorizontal, TriangleAlert, Users } from 'lucide-react'
+import { Heart, History, LayoutDashboard, SlidersHorizontal, TriangleAlert, Users } from 'lucide-react'
 import { api } from './api.js'
 import { useDatos } from './hooks.js'
 import EstadoConexion from './components/EstadoConexion.jsx'
@@ -28,7 +28,7 @@ export default function App() {
   const usaFiltros = actual !== 'parametros' && actual !== 'historial'
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-stone-50 text-slate-900">
       {/* Enlace para saltar directo al contenido con el teclado */}
       <a
         href="#contenido"
@@ -38,11 +38,17 @@ export default function App() {
       </a>
 
       {/* Barra superior: título, filtros globales (instituto y mes) y estado de conexión */}
-      <header className="z-20 border-b border-slate-200 bg-white md:sticky md:top-0">
+      <header className="z-20 border-t-[6px] border-b border-t-teleton-600 border-b-slate-200 bg-white md:sticky md:top-0">
         <div className="flex flex-wrap items-end justify-between gap-4 px-4 py-3 md:px-6">
-          <div>
-            <p className="text-sm font-medium text-slate-600">Teletón · Planificación asistencial 2026</p>
-            <h1 className="text-2xl font-bold">Cada hora cuenta</h1>
+          <div className="flex items-center gap-3">
+            {/* Corazón rojo como sello de la Teletón (decorativo) */}
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teleton-600" aria-hidden="true">
+              <Heart className="h-6 w-6 fill-white text-white" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-teleton-700">Teletón · Planificación asistencial 2026</p>
+              <h1 className="text-2xl font-extrabold">Cada hora cuenta</h1>
+            </div>
           </div>
           {usaFiltros && (
             <Filtros institutos={institutos.datos ?? []} it={filtros.it} mes={filtros.mes} onCambiar={setFiltros}
@@ -54,7 +60,7 @@ export default function App() {
 
       <div className="md:flex">
         {/* Barra lateral de navegación: en pantallas chicas queda como una fila arriba del contenido */}
-        <aside className="border-b border-slate-200 bg-white md:sticky md:top-[89px] md:h-[calc(100vh-89px)] md:w-60 md:shrink-0 md:border-r md:border-b-0">
+        <aside className="border-b border-slate-200 bg-white md:sticky md:top-[94px] md:h-[calc(100vh-94px)] md:w-60 md:shrink-0 md:border-r md:border-b-0">
           <nav aria-label="Secciones" className="p-3">
             <ul className="flex gap-1 overflow-x-auto md:flex-col">
               {SECCIONES.map((s) => (
@@ -64,7 +70,7 @@ export default function App() {
                     onClick={() => setActual(s.id)}
                     aria-current={s.id === actual ? 'page' : undefined}
                     className={`flex w-full items-center gap-3 whitespace-nowrap rounded-md px-3 py-2 text-left text-base font-medium ${
-                      s.id === actual ? 'bg-blue-50 text-blue-800 ring-1 ring-blue-700' : 'text-slate-700 hover:bg-slate-100'
+                      s.id === actual ? 'bg-teleton-50 text-teleton-800 ring-1 ring-teleton-700' : 'text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     {/* El ícono acompaña al texto: aria-hidden para que el lector de pantalla no lo repita */}

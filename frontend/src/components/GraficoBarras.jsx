@@ -24,12 +24,12 @@ export default function GraficoBarras({ titulo, datos, campoEtiqueta, campoValor
                    textAnchor="end" height={80} />
             <YAxis tick={{ fill: '#334155' }} />
             <Tooltip />
-            <Bar dataKey={campoValor} name={nombreValor} fill="#1d4ed8" isAnimationActive={false} />
+            <Bar dataKey={campoValor} name={nombreValor} fill="#b8000f" isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
       <details className="mt-4">
-        <summary className="cursor-pointer text-blue-800 underline">Ver los datos en una tabla</summary>
+        <summary className="cursor-pointer text-teleton-800 underline">Ver los datos en una tabla</summary>
         <table className="mt-2 w-full text-left">
           <thead>
             <tr>

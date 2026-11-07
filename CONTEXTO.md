@@ -4,7 +4,7 @@
 >
 > **Regla:** cada vez que se haga algo en el proyecto o el usuario entregue información nueva (documentos, decisiones, cambios de roles o de arquitectura), **actualiza este archivo en el mismo turno**: corrige la sección que corresponda y anota el cambio en el registro del final.
 >
-> **Última actualización:** 7 de noviembre de 2026, 09:00.
+> **Última actualización:** 7 de noviembre de 2026, 09:15.
 
 ---
 
@@ -446,3 +446,4 @@ Una línea por actualización, la más reciente al final.
 - **2026-11-07 08:45** · Documentos compartidos (en Descargas) actualizados a la detección de cambios en el backend: `correccion_flujo_general.md` (Blue Prism solo envía BUK y Excepciones; la API compara con la carga anterior antes de calcular; «SQL Server» → «SQLite»), `solucion_final_demo_sqlite.md` (Blue Prism no compara versiones; nuevo `GET /api/v1/cambios`; se quitó `POST /auditoria/deltas`; cronograma y guion de la demo con los cambios) y `guia_conexion_blueprism_backend.md` (sin mención a SQL Server). Detectado: el envío en partes con el mismo `ejecucion_id` no funciona con el backend actual.
 - **2026-11-07 08:50** · `frontend/index.html` estaba dañado (quedaban 44 caracteres, con «]]]]]]]]]]]]» en vez del `<head>` y el `<body>`) y el sitio se veía en blanco. Se restauró el contenido original; el sitio vuelve a cargar sin errores. No se encontraron otros archivos dañados.
 - **2026-11-07 09:00** · **Proyecto subido a GitHub** (autorizado por el equipo): repositorio público https://github.com/matiberoiza/Botathon2026, rama `main`. Se creó `.gitignore` (excluye data/raw, data/entrada, data/generados, la base `.db`, `.env`, `.venv`, `node_modules`, `dist`, cachés y `.DS_Store`). Se suben 53 archivos con código, documentos, CONTEXTO.md e INICIO.md (decisión del usuario, aunque el repo es público). El repo ya tenía un commit inicial con un README de una línea; se unió conservando el README del proyecto.
+- **2026-11-07 09:15** · **Diseño con colores Teletón** en el frontend: paleta roja propia en `index.css` (`teleton-50` a `teleton-900`, rojo de marca #e2001a), franja roja arriba de la barra superior, corazón blanco sobre círculo rojo junto al título (no se usa el logo oficial, que es marca registrada), menú activo, botones, enlaces, íconos y gráficos en rojo; en la dona, directa en rojo, indirecta en azul marino y NAS en gris. El azul queda solo en las insignias «Pendiente» y «Modificación» (información). Contraste AA verificado (rojo 700 sobre blanco 6,9:1; botón blanco sobre rojo 6,9:1). Probado en escritorio y celular, sin errores. Sin commit (pendiente de que el usuario lo pida).

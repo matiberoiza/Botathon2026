@@ -44,7 +44,7 @@ export default function GraficoDona({ titulo, datos, unidad = 'horas' }) {
         </ul>
       </div>
       <details className="mt-4">
-        <summary className="cursor-pointer text-blue-800 underline">Ver los datos en una tabla</summary>
+        <summary className="cursor-pointer text-teleton-800 underline">Ver los datos en una tabla</summary>
         <table className="mt-2 w-full text-left">
           <thead>
             <tr>
