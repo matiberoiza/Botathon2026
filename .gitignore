@@ -1,0 +1,23 @@
+# Datos: no se suben, aunque sean ficticios
+data/raw/
+data/entrada/
+data/generados/
+*.db
+*.db-shm
+*.db-wal
+~$*
+
+# Configuración local (puede llevar rutas o contraseñas)
+.env
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Frontend
+node_modules/
+dist/
+
+# Sistema
+.DS_Store
