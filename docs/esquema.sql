@@ -127,6 +127,8 @@ CREATE TABLE cargas (
     fuente               TEXT NOT NULL CHECK (fuente IN ('BUK', 'SIC', 'DELTAS', 'PARAMETROS', 'ENTRADAS')),
     archivo              TEXT,
     hash_archivo         TEXT,                                 -- SHA-256: verifica el contenido
+    hash_payload         TEXT,                                 -- identidad del JSON normalizado
+    periodos_completos    TEXT NOT NULL DEFAULT '[]',            -- meses declarados completos a nivel nacional
     cobertura_desde      TEXT,                                 -- primer período informado
     cobertura_hasta      TEXT,                                 -- último período informado
     version_referencia   INTEGER REFERENCES cargas (carga_id), -- carga BUK aceptada contra la que se comparó

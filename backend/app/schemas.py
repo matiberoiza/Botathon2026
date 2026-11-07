@@ -24,7 +24,7 @@ class ContratoBUK(BaseModel):
     Periodo: date
     Cargo: str
     CodEsp: str | None = None
-    HorasSemanales: float = Field(ge=0)
+    HorasSemanales: float = Field(ge=0, allow_inf_nan=False)
     TipoContrato: str | None = None
     TipoTrabajador: str | None = None
     FechaIngreso: date | None = None
@@ -63,7 +63,12 @@ class RepartoMultiInstituto(BaseModel):
     PersonaId: int
     IT: int
     Periodo: date
-    HorasSemanales: float = Field(ge=0)
+    HorasSemanales: float = Field(ge=0, allow_inf_nan=False)
+
+    @field_validator("Periodo")
+    @classmethod
+    def periodo_dia_uno(cls, valor: date) -> date:
+        return ContratoBUK.periodo_dia_uno(valor)
 
 
 class Conteos(BaseModel):
@@ -82,7 +87,13 @@ class CargaBUK(BaseModel):
     conteos: Conteos = Conteos()
     contratos: list[dict]
     excluidos: list[RegistroExcluido] = []
-    multi_instituto: list[RepartoMultiInstituto] = []
+    multi_instituto: list[dict] = []  # también se valida fila por fila
+    periodos_completos: list[date] = []  # cobertura nacional explícita; vacío = actualización parcial
+
+    @field_validator("periodos_completos")
+    @classmethod
+    def validar_cobertura(cls, valores: list[date]) -> list[date]:
+        return sorted({ContratoBUK.periodo_dia_uno(v) for v in valores})
 
 
 class RespuestaCarga(BaseModel):

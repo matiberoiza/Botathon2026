@@ -18,6 +18,8 @@ Uso por línea de comandos:  python -m backend.app.motor
 """
 
 import math
+import calendar
+import json
 from collections import defaultdict
 
 import pandas as pd
@@ -41,30 +43,40 @@ def _leer(c, sql: str) -> pd.DataFrame:
     return pd.read_sql(text(sql), c)
 
 
-def calcular(motivo: str, usuario: str, carga_buk_id: int | None = None, es_simulacion: bool = False) -> int:
+def calcular(motivo: str, usuario: str, carga_buk_id: int | None = None, es_simulacion: bool = False,
+             conexion=None) -> int:
     """Calcula todos los profesionales y meses, y guarda una versión nueva. Devuelve su version_id."""
+    if conexion is not None:
+        return _publicar(conexion, motivo, usuario, carga_buk_id, es_simulacion)
     engine = obtener_engine()
-    with engine.begin() as c:
-        version_id = c.execute(text(
-            "INSERT INTO versiones_calculo (motivo, usuario, carga_buk_id, es_simulacion) "
-            "VALUES (:m, :u, :c, :s) RETURNING version_id"),
-            {"m": motivo, "u": usuario, "c": carga_buk_id, "s": int(es_simulacion)}).scalar()
-
     try:
-        with engine.connect() as c:
-            filas = _calcular_filas(c, version_id)
         with engine.begin() as c:
-            if filas:
-                columnas = list(filas[0])
-                c.execute(text(f"INSERT INTO resultados_planificacion ({', '.join(columnas)}) VALUES "
-                               f"({', '.join(':' + x for x in columnas)})"), filas)
-            c.execute(text("UPDATE versiones_calculo SET estado = 'PUBLICADA' WHERE version_id = :v"), {"v": version_id})
+            c.exec_driver_sql("BEGIN IMMEDIATE")
+            return _publicar(c, motivo, usuario, carga_buk_id, es_simulacion)
     except Exception:
-        # Si falla, la versión queda FALLIDA y sigue vigente la última PUBLICADA
         with engine.begin() as c:
-            c.execute(text("UPDATE versiones_calculo SET estado = 'FALLIDA' WHERE version_id = :v"), {"v": version_id})
+            c.execute(text("INSERT INTO versiones_calculo (motivo, usuario, carga_buk_id, es_simulacion, estado) "
+                           "VALUES (:m, :u, :c, :s, 'FALLIDA')"),
+                      {"m": motivo, "u": usuario, "c": carga_buk_id, "s": int(es_simulacion)})
         raise
+
+
+def _publicar(c, motivo, usuario, carga_buk_id, es_simulacion):
+    version_id = c.execute(text(
+        "INSERT INTO versiones_calculo (motivo, usuario, carga_buk_id, es_simulacion) "
+        "VALUES (:m, :u, :c, :s) RETURNING version_id"),
+        {"m": motivo, "u": usuario, "c": carga_buk_id, "s": int(es_simulacion)}).scalar()
+    filas = _calcular_filas(c, version_id)
+    if filas:
+        columnas = list(filas[0])
+        c.execute(text(f"INSERT INTO resultados_planificacion ({', '.join(columnas)}) VALUES "
+                       f"({', '.join(':' + x for x in columnas)})"), filas)
+    c.execute(text("UPDATE versiones_calculo SET estado = 'PUBLICADA' WHERE version_id = :v"), {"v": version_id})
     return version_id
+
+
+def _vigente(desde, hasta, inicio, fin):
+    return (not desde or pd.isna(desde) or desde <= fin) and (not hasta or pd.isna(hasta) or hasta >= inicio)
 
 
 def _calcular_filas(c, version_id: int) -> list[dict]:
@@ -81,10 +93,14 @@ def _calcular_filas(c, version_id: int) -> list[dict]:
     semanas_mes = dict(c.execute(text("SELECT periodo, semanas FROM calendario_mes")).all())
 
     # ---------- Datos ----------
-    contratos = _leer(c, "SELECT persona_id, it, periodo, cargo, horas_semanales, fecha_termino, estado_calidad, motivo "
+    contratos = _leer(c, "SELECT persona_id, it, periodo, cargo, horas_semanales, fecha_ingreso, fecha_termino, estado_calidad, motivo "
                          "FROM contratos_mes WHERE persona_id IS NOT NULL")
     horas_buk = {(r.persona_id, r.it, r.periodo): r for r in contratos.itertuples()}
-    ultimo_buk = contratos.sort_values("periodo").groupby(["persona_id", "it"]).last()
+    historial = defaultdict(list)
+    for r in contratos.sort_values("periodo").itertuples():
+        historial[(r.persona_id, r.it)].append(r)
+    completos = sorted({p for (lista,) in c.execute(text(
+        "SELECT periodos_completos FROM cargas WHERE fuente='BUK' AND estado='ACEPTADA'")) for p in json.loads(lista)})
     reparto = {(r.persona_id, r.it, r.periodo): r.horas_semanales
                for r in _leer(c, "SELECT * FROM reparto_multi_instituto").itertuples()}
     con_reparto = {(p, i) for p, i, _ in reparto}
@@ -114,29 +130,48 @@ def _calcular_filas(c, version_id: int) -> list[dict]:
                 return t.tramo
         return tramos.iloc[-1].tramo
 
+    carga_errores = c.execute(text("SELECT coalesce(carga_buk_id, (SELECT max(carga_id) FROM cargas "
+                                  "WHERE fuente='BUK' AND estado='ACEPTADA')) FROM versiones_calculo WHERE version_id=:v"),
+                             {"v": version_id}).scalar()
+    # Las exclusiones del motor describen el cálculo actual; se regeneran al recalcular.
+    if carga_errores is not None:
+        c.execute(text("DELETE FROM errores_validacion WHERE carga_id=:c AND regla IN ('RN-15', 'RN-09', 'RN-18')"),
+                  {"c": carga_errores})
+
+    def excluir(pj, per, campo, regla, detalle):
+        if carga_errores is not None:
+            c.execute(text("INSERT INTO errores_validacion (carga_id, persona_id, it, campo, valor, regla, severidad, "
+                           "detectado_por, detalle) VALUES (:c, :p, :i, :ca, :v, :r, 'ERROR', 'BACKEND', :d)"),
+                      {"c": carga_errores, "p": int(pj.persona_id), "i": int(pj.it), "ca": campo,
+                       "v": per, "r": regla, "d": f"{per}: {detalle}; mes excluido del cálculo"})
+
     resultados = []
     for pj in periodos.itertuples():
         clave = (pj.persona_id, pj.it)
         meses = [m for m in range(1, 13) if pj.desde[:7] <= _periodo(m)[:7] <= pj.hasta[:7]]
 
         # 1. Horas de cada mes y su origen
-        horas, origen, alertas_contrato, cargo_mes = {}, {}, [], {}
+        horas, origen, calidad_mes, cargo_mes = {}, {}, {}, {}
         for m in meses:
             per = _periodo(m)
+            fin = f"2026-{m:02d}-{calendar.monthrange(2026, m)[1]}"
+            previos = [r for r in historial.get(clave, []) if r.periodo <= per]
+            ct = horas_buk.get((*clave, per)) or (previos[-1] if previos else None)
+            if ct is not None and (ct.estado_calidad == "EXCLUIDO" or not _vigente(ct.fecha_ingreso, ct.fecha_termino, per, fin)):
+                continue
+            # Una ausencia en un reporte nacional completo corta la proyección de una fila antigua.
+            ultimo_completo = max((p for p in completos if p <= per), default=None)
+            if ct is not None and ultimo_completo and ct.periodo < ultimo_completo:
+                continue
             if clave in con_reparto:
                 # 0 horas en el reparto = ese mes no trabaja en este instituto (no cuenta para el promedio)
                 if reparto.get((pj.persona_id, pj.it, per), 0) > 0:
                     horas[m], origen[m] = reparto[(pj.persona_id, pj.it, per)], "REAL"
-            elif (pj.persona_id, pj.it, per) in horas_buk:
-                ct = horas_buk[(pj.persona_id, pj.it, per)]
-                horas[m], origen[m], cargo_mes[m] = ct.horas_semanales, "REAL", ct.cargo
-                if ct.estado_calidad in ("ALERTA", "PENDIENTE") and ct.motivo:
-                    alertas_contrato.append(ct.motivo)
-            elif clave in ultimo_buk.index:
-                ultimo = ultimo_buk.loc[clave]
-                termino = ultimo.fecha_termino
-                if per > ultimo.periodo and (termino is None or pd.isna(termino) or termino >= per):
-                    horas[m], origen[m], cargo_mes[m] = ultimo.horas_semanales, "PROYECCION", ultimo.cargo
+            elif ct is not None:
+                horas[m], origen[m] = ct.horas_semanales, "REAL" if ct.periodo == per else "PROYECCION"
+            if ct is not None:
+                cargo_mes[m] = ct.cargo
+                calidad_mes[m] = (ct.estado_calidad, ct.motivo)
         if not horas:
             continue
 
@@ -144,41 +179,42 @@ def _calcular_filas(c, version_id: int) -> list[dict]:
         promedio = math.trunc(sum(horas.values()) / len(horas) + EPS)
         tramo = tramo_de(promedio)
 
-        # 3. Ajustes manuales vigentes en el período (se aplican encima de la tabla de cada mes)
-        motivos = list(dict.fromkeys(alertas_contrato))
-        estado = "ALERTA" if motivos else "VALIDO"
-        if pj.estimado:
-            motivos.append("Profesional nuevo: semanas hábiles estimadas con el calendario")
-            estado = "ALERTA"
-        ajustes_vigentes = {}
-        for aj in ajustes.get(clave, []):
-            if aj.vigente_desde <= pj.hasta and (aj.vigente_hasta is None or aj.vigente_hasta >= pj.desde):
-                ajustes_vigentes[aj.campo] = aj.valor
-                if aj.estado != "APROBADO":
-                    motivos.append(f"Ajuste manual sin autorización ({aj.campo})")
-                    estado = "ALERTA"
-
-        # 5. Asignaciones del período
-        horas_asig = 0.0
-        for a in asignaciones.get(clave, []):
-            if a.vigente_desde <= pj.hasta and (a.vigente_hasta is None or a.vigente_hasta >= pj.desde):
-                horas_asig += a.horas_semanales
-                if a.asignacion_id is None or pd.isna(a.asignacion_id):
-                    motivos.append("Asignación sin nombre")
-                    estado = "ALERTA" if estado == "VALIDO" else estado
-                if a.estado == "PENDIENTE":
-                    motivos.append("Asignación por autorizar (DMN)")
-                    estado = "PENDIENTE"
-        grupo = grupal.get((pj.cod_esp, grupo_it.get(pj.it, "OTROS")))
-
         for m in meses:
             if m not in horas:
                 continue
             per = _periodo(m)
             hs = horas[m]
             cargo = cargo_mes.get(m, pj.cargo)                          # el cargo que informa BUK ese mes
+            inicio = max(per, pj.desde)
+            fin = min(f"2026-{m:02d}-{calendar.monthrange(2026, m)[1]}", pj.hasta)
+            estado_mes, motivo_ct = calidad_mes.get(m, ("VALIDO", None))
+            motivos_mes = [motivo_ct] if motivo_ct else []
+            if pj.estimado:
+                motivos_mes.append("Profesional nuevo: semanas hábiles estimadas con el calendario")
+                estado_mes = "ALERTA" if estado_mes == "VALIDO" else estado_mes
+            ajustes_vigentes = {}
+            for aj in ajustes.get(clave, []):
+                if aj.estado != "RECHAZADO" and _vigente(aj.vigente_desde, aj.vigente_hasta, inicio, fin):
+                    ajustes_vigentes[aj.campo] = aj.valor
+                    if aj.estado != "APROBADO":
+                        motivos_mes.append(f"Ajuste manual sin autorización ({aj.campo})")
+                        estado_mes = "PENDIENTE"
+            horas_asig = 0.0
+            for a in asignaciones.get(clave, []):
+                if a.estado != "RECHAZADA" and _vigente(a.vigente_desde, a.vigente_hasta, inicio, fin):
+                    horas_asig += a.horas_semanales
+                    if a.asignacion_id is None or pd.isna(a.asignacion_id):
+                        motivos_mes.append("Asignación sin nombre")
+                        estado_mes = "ALERTA" if estado_mes == "VALIDO" else estado_mes
+                    if a.estado == "PENDIENTE":
+                        motivos_mes.append("Asignación por autorizar (DMN)")
+                        estado_mes = "PENDIENTE"
+            # Conserva la especialidad individual del Excel; solo cambia si BUK cambia el cargo.
+            cod_esp = pj.cod_esp if cargo == pj.cargo else cod_de_cargo.get(cargo)
+            grupo = grupal.get((cod_esp, grupo_it.get(pj.it, "OTROS")))
             if (cargo, tramo) not in distribucion:
-                continue  # cargo sin parámetros: ya quedó EXCLUIDO al recibir la carga
+                excluir(pj, per, "Cargo/Tramo", "RN-09", "Falta distribución para el cargo y tramo")
+                continue
             p_dir, p_ind, p_nas = distribucion[(cargo, tramo)]          # 3. % por cargo y tramo
             min_dir, min_ind = minutos[cargo]
             p_dir = ajustes_vigentes.get("PCT_DIRECTA", p_dir)
@@ -189,11 +225,16 @@ def _calcular_filas(c, version_id: int) -> list[dict]:
             nas_base = p_nas * promedio                                 # 5. NAS base
             ad = hs - (pj.horas_colacion or 0)                          # 4. horas disponibles
             if pj.estimado:
-                sem = semanas_mes.get(per, 0.0)
+                sem = semanas_mes.get(per)
             else:
-                sem = semhab.get((pj.persona_id, pj.it, per), 0.0)
-            motivos_mes = list(motivos)
-            estado_mes = estado
+                sem = semhab.get((pj.persona_id, pj.it, per))
+            if sem is None or not math.isfinite(sem) or sem < 0:
+                excluir(pj, per, "SemHab", "RN-15", "Faltan semanas hábiles válidas")
+                continue
+            semanas_calendario = semanas_mes.get(per)
+            if semanas_calendario is None or not math.isfinite(semanas_calendario) or semanas_calendario < 0:
+                excluir(pj, per, "Calendario", "RN-18", "Faltan semanas de calendario válidas")
+                continue
             if ad <= 0 or nas_base + horas_asig > ad:
                 f_nas = f_dir = f_ind = None
                 h_dir = h_ind = 0.0
@@ -213,7 +254,7 @@ def _calcular_filas(c, version_id: int) -> list[dict]:
 
             plan_dir = piso(ate_dir_grupo * sem)                         # 8. atenciones del mes
             plan_tot = piso((ate_dir_grupo + ate_ind) * sem)
-            horas_contratadas = hs * semanas_mes.get(per, 0)
+            horas_contratadas = hs * semanas_calendario
             horas_dir_mes = h_dir * sem
             foja = horas_dir_mes / horas_contratadas if horas_contratadas > 0 else None
 

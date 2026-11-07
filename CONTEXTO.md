@@ -4,7 +4,7 @@
 >
 > **Regla:** cada vez que se haga algo en el proyecto o el usuario entregue información nueva (documentos, decisiones, cambios de roles o de arquitectura), **actualiza este archivo en el mismo turno**: corrige la sección que corresponda y anota el cambio en el registro del final.
 >
-> **Última actualización:** 7 de noviembre de 2026, 09:45.
+> **Última actualización:** 7 de noviembre de 2026, publicación autorizada de la reparación del backend (ver registro final).
 
 ---
 
@@ -253,15 +253,15 @@ Mejor ejemplo para notar la diferencia: **71580** (fila 7). En enero el Excel ti
 
 ## 12. Lo que existe en código
 
-**Backend (`backend/`, FastAPI + SQLite, funciona de punta a punta):**
+**Backend (`backend/`, FastAPI + SQLite, validado en pruebas locales; integración real pendiente):**
 - `app/config.py` y `app/db.py`: ruta del `.db` en `backend/.env`; SQLite con claves foráneas y modo WAL.
 - `app/carga_inicial.py`: al arrancar, crea las tablas (`docs/esquema.sql`) y carga parámetros y entradas desde `data/generados/`.
 - `app/schemas.py`: contrato de datos del bot (Pydantic).
-- `app/sincronizacion.py`: `POST /api/v1/buk/sync`; idempotente, valida fila por fila (una fila mala no rechaza el resto), guarda, **detecta cambios** y recalcula.
+- `app/sincronizacion.py`: `POST /api/v1/buk/sync`; valida contratos y reparto por fila, actualiza cargas parciales sin borrar otras personas y publica carga + cálculo en una transacción. `periodos_completos` declara cobertura nacional y permite bajas por ausencia. Un fallo revierte la carga y responde 503; el reintento recalcula. Comprueba identidad del contenido y rechaza conflictos con 409.
 - `app/cambios.py`: compara el BUK nuevo con el anterior (solo los meses informados): ALTA, BAJA, MODIFICACION (horas, cargo, tipo de contrato, fecha de término, traslado de instituto), cada una con la fecha desde la que rige.
-- `app/motor.py`: motor de 8 pasos; usa el cargo de BUK de cada mes y planifica a los profesionales nuevos (semanas hábiles estimadas con el calendario, con alerta).
+- `app/motor.py`: motor de 8 pasos; respeta la vigencia de contratos, asignaciones y ajustes mes a mes; no cuenta asignaciones/ajustes rechazados. Sin semanas hábiles excluye el mes y registra RN-15, en vez de publicar cero válido. Conserva la especialidad individual del Excel y la estimación con alerta para profesionales nuevos.
 - `app/routers/`: salud, buk, dashboard (kpis, institutos, profesionales, excepciones, parámetros, versiones, cambios).
-- `tests/test_api.py`: 13 pruebas, todas pasan (incluye los 7 casos del Excel y la detección de cambios).
+- `tests/test_api.py` y `tests/test_regresiones.py`: 37 pruebas aprobadas (13 de integración + 24 de regresión), incluidas fallas y reintentos, cargas concurrentes, cobertura completa vacía, vigencias y migración no destructiva. Verificador: 7/7 casos y 96,3 % estricto; persisten 94 meses distintos en 25 filas fuera de las exclusiones actuales.
 
 **Frontend (`frontend/`, React + Vite + Tailwind + Recharts + Lucide):**
 - Barra lateral y barra superior con filtros globales y estado de conexión.
@@ -386,9 +386,9 @@ Archivo: `~/Downloads/reglas_negocio_cada_hora_cuenta.md` (28 reglas RN-01 a RN-
 
 ## 16. En qué quedamos
 
-- Dije que **primero quiero entender bien el backend** y que **durante estas horas haremos solo flujo de datos**.
-- **No hay ninguna tarea en curso.** Pedí «todavía no hagas nada» y no se avanzó con FRONT-1.
-- **Siguiente paso sugerido (esperar mi visto bueno):** acordar con Andrés el contrato de los JSON de consulta, y luego FRONT-1 con datos de ejemplo.
+- Se autorizó reparar las seis fallas confirmadas en la revisión del backend. Correcciones implementadas y verificadas; el usuario pidió explícitamente crear el commit y subirlas a `main` de GitHub.
+- No se modificaron los Excel ni la base de trabajo: las pruebas y la comparación usaron bases temporales.
+- Antes de usar la reparación en la demo: reiniciar el backend (migración aditiva automática) y adaptar el envío de Blue Prism a `periodos_completos` si se necesita detectar bajas por ausencia. Esta integración real aún no se probó.
 
 **Decisiones pendientes del equipo:**
 1. Dónde corren FastAPI y SQL Server, y si la VM llega a esa máquina por HTTP.
@@ -450,3 +450,6 @@ Una línea por actualización, la más reciente al final.
 - **2026-11-07 09:30** · **Logos del evento en el sitio**, a pedido del usuario: se recortaron de la imagen del banner de la Botathon que envió (Duoc UC con su Escuela de Informática y Telecomunicaciones, Teletón y SS&C Blue Prism), con fondo transparente, en `frontend/src/assets/logos/` (blancos y uno de la Teletón en rojo). Franja roja arriba con «Botathon 2026 · Desafío Teletón» y los tres logos (con texto alternativo); el logo rojo de la Teletón reemplaza al corazón junto al título (decorativo, se oculta en celular porque ya está en la franja). Probado en escritorio y celular, sin errores.
 - **2026-11-07 09:40** · Menú de secciones siempre lateral (antes, bajo 768 px pasaba a una fila horizontal arriba). En pantallas angostas muestra solo los íconos (el nombre queda para lectores de pantalla y como tooltip); desde 768 px, ícono y texto. Probado a 375, 609 y 1280 px, sin errores.
 - **2026-11-07 09:45** · Etiqueta flotante con el nombre de cada sección al pasar el cursor sobre su ícono en la barra lateral angosta (también aparece al llegar con el teclado; se reemplazó el tooltip nativo, que tardaba). Con la barra ancha no aparece, porque el texto ya se ve. Ambos cambios subidos a GitHub.
+- **2026-11-07 10:00** · Revisión externa (ChatGPT, sobre el commit 1dd566b) encontró 6 problemas en el backend; los 6 se confirmaron en el código, aunque ninguno ocurre con los datos del kit: (1) una carga parcial borra los demás contratos del mes y genera bajas falsas; (2) se planifican meses después de la fecha de término si BUK trae la fila; (3) las asignaciones se aplican a todo el período aunque empiecen después, y las rechazadas se siguen contando; (4) semanas hábiles faltantes se tratan como 0 VALIDO; (5) un reintento tras un cálculo fallido responde ACEPTADA sin recalcular; (6) un instituto inexistente en el reparto multi-instituto produce error 500. **ChatGPT está haciendo las correcciones**; no tocar `sincronizacion.py` ni `motor.py` en paralelo. Al recibirlas: correr las pruebas, `verificar_motor.py` (7/7 y 96,3 %) y la demo de cambios.
+- **2026-11-07 · Reparación posterior a la revisión** · Corregidas las seis fallas en el proyecto local: cargas parciales seguras y cobertura nacional explícita; vigencias mensuales; exclusión de asignaciones/ajustes rechazados; semanas hábiles faltantes visibles como error; carga y publicación atómicas con reintento y detección de contenido incompatible; reparto inválido aislado por fila. Migración aditiva para `hash_payload` y `periodos_completos`, simulador y README actualizados. Verificado: 37/37 pruebas, incluidos envíos concurrentes y fallo forzado seguido de recuperación; 7/7 ejemplos del Excel, 96,3 % estricto y 98,2 % con las exclusiones del verificador. Se mantienen las 94 diferencias no clasificadas por ese verificador (25 filas); no se atribuyen automáticamente al Excel. Sin cambios en los Excel o base real, sin commit/push y sin reiniciar el servidor de trabajo. Pendiente integración real del bot con la cobertura explícita.
+- **2026-11-07 · Publicación autorizada** · El usuario pidió «súbelo»: se autoriza el commit y el push de la reparación, las pruebas y la documentación a `main` de `matiberoiza/Botathon2026`. La publicación excluye Excel, bases de datos, configuración local y dependencias. No implica desplegar ni reiniciar el backend; la integración real con Blue Prism sigue pendiente.

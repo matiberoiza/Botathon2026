@@ -70,6 +70,7 @@ def construir_payload(ejecucion_id: str | None = None) -> dict:
         "hash_archivo": hashlib.sha256(BUK.read_bytes()).hexdigest(),
         "conteos": {"leidas": len(buk), "validas": len(contratos), "excluidas": len(excluidos), "alertas": 0},
         "contratos": contratos, "excluidos": excluidos, "multi_instituto": multi,
+        "periodos_completos": sorted({c["Periodo"] for c in contratos}),
     }
 
 

@@ -31,7 +31,7 @@ Crea `data/generados/parametros.xlsx` y `data/generados/entradas_planificacion.x
 .venv/bin/python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Al arrancar crea la base SQLite (`data/planificacion.db`, 28 tablas) y hace la carga inicial. `--host 0.0.0.0` permite que la VM de Blue Prism se conecte. Documentación de la API: http://localhost:8000/docs.
+Al arrancar crea la base SQLite (`data/planificacion.db`, 28 tablas) y hace la carga inicial. En bases existentes agrega, sin borrar datos, las columnas de huella del envío y cobertura completa. `--host 0.0.0.0` permite que la VM de Blue Prism se conecte. Documentación de la API: http://localhost:8000/docs.
 
 Para empezar de cero, se detiene el backend y se borra `data/planificacion.db`.
 
@@ -78,6 +78,23 @@ Abre http://localhost:5173.
 
 ## Pruebas y verificación
 
+### Contrato de carga y reintentos
+
+- Por defecto una carga es **parcial**: actualiza únicamente `PersonaId + IT + Periodo` recibidos. La ausencia de otra persona no es una baja.
+- Para reemplazar un reporte **nacional completo**, incluir `periodos_completos`, por ejemplo `["2026-06-01", "2026-07-01"]`. Solo esos meses permiten bajas por ausencia. También se permite un mes completo sin contratos. No declarar cobertura completa para un fragmento ni para un solo instituto.
+- Las filas rechazadas identificables conservan su contrato previo. Si una exclusión no identifica persona e instituto, el backend rechaza la declaración de cobertura completa (422): hay que corregirla o enviar una actualización parcial.
+- El simulador ya declara los meses completos del BUK. Blue Prism debe usar el mismo campo para detectar bajas por ausencia. Cada envío parcial distinto necesita su propio `ejecucion_id`; reutilizarlo no agrega otro lote.
+- Los repartos multi-instituto se validan por fila y se actualizan por persona, instituto y mes, sin borrar los demás meses. Para anular horas de un reparto ya informado, enviar `HorasSemanales: 0`. Los rechazos quedan en `/api/v1/excepciones`; sus conteos se informan aparte como `reparto_validas` y `reparto_excluidas` en la primera respuesta.
+- Mismo `ejecucion_id` y mismo contenido publicado: devuelve la versión existente. Mismo ID con otro contenido: **409**, sin modificar datos. La identidad se comprueba con el JSON normalizado, no solo con `hash_archivo`.
+- Si el cálculo falla: **503**, la carga se revierte y queda un intento fallido en el historial. La última planificación publicada no cambia. Se puede reintentar el mismo ID y contenido. Si entretanto se aceptó una carga posterior, se devuelve 409 para evitar sobrescribirla con un reintento antiguo; revisar los datos y usar un nuevo ID.
+- Las ejecuciones previas a esta reparación no tienen huella verificable: su reutilización devuelve 409 y requiere un nuevo ID. No se eliminan sus datos ni versiones.
+
+Los contratos se calculan solo en meses que intersectan su vigencia. Las asignaciones y los ajustes se aplican únicamente en sus meses vigentes; los rechazados no cuentan. No se agregó un prorrateo diario: los meses de ingreso o término parcial siguen usando las entradas mensuales disponibles.
+
+Un profesional existente sin semanas hábiles no recibe un cero válido: ese mes se excluye del cálculo y queda un error `RN-15` con el mes y el motivo. Un cero explícito sí es válido. Las altas sin entradas de planificación mantienen la estimación con calendario, señalada como `ALERTA`.
+
+### Ejecutar las comprobaciones
+
 ```bash
 .venv/bin/python -m pytest backend/tests -v
 ```
@@ -86,4 +103,6 @@ Abre http://localhost:5173.
 .venv/bin/python herramientas/verificar_motor.py
 ```
 
-El verificador compara el cálculo con el Excel de planificación: los 7 casos de prueba coinciden y la coincidencia estricta es de 96,3 % (98,2 % sin las diferencias conocidas del Excel).
+Verificado tras la reparación: **37 pruebas aprobadas** (13 de integración y 24 de regresión, estas últimas sin Excel). Las comprobaciones usan SQLite temporal, no la base de trabajo.
+
+El verificador compara el cálculo con el Excel de planificación: los 7 casos de prueba coinciden y la coincidencia estricta es de 96,3 % (98,2 % aplicando las exclusiones del verificador). Persisten 94 diferencias fuera de esas exclusiones, en 25 filas: estos resultados no certifican que todas las reglas del desafío estén implementadas ni reemplazan la prueba real con Blue Prism.

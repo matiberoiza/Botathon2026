@@ -16,15 +16,16 @@ Precauciones (para no inventar bajas):
 """
 
 CAMPOS = {"horas_semanales": "Horas semanales", "cargo": "Cargo", "tipo_contrato": "Tipo de contrato",
-          "fecha_termino": "Fecha de término"}
+          "fecha_termino": "Fecha de término", "fecha_ingreso": "Fecha de ingreso"}
 
 
-def detectar(anteriores: list[dict], nuevos: list[dict], rechazados: set[tuple]) -> list[dict]:
+def detectar(anteriores: list[dict], nuevos: list[dict], rechazados: set[tuple],
+             periodos_comparados: set[str] | None = None) -> list[dict]:
     """anteriores / nuevos: contratos con persona_id, it, periodo y los campos de CAMPOS.
     rechazados: (persona_id, it) que vinieron con error en la carga nueva."""
     if not anteriores:
         return []
-    periodos_nuevos = {c["periodo"] for c in nuevos}
+    periodos_nuevos = periodos_comparados if periodos_comparados is not None else {c["periodo"] for c in nuevos}
     ant = {(c["persona_id"], c["it"], c["periodo"]): c for c in anteriores if c["periodo"] in periodos_nuevos}
     nue = {(c["persona_id"], c["it"], c["periodo"]): c for c in nuevos}
     pares_ant = {(p, i) for p, i, _ in ant}

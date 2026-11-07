@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/v1/buk", tags=["Blue Prism"])
 @router.post("/sync", response_model=RespuestaCarga)
 def sincronizar_buk(carga: CargaBUK) -> dict:
     """Recibe la carga de BUK del bot, la valida, la guarda y recalcula la planificación."""
-    if not carga.contratos and not carga.excluidos:
+    if not carga.contratos and not carga.excluidos and not carga.multi_instituto and not carga.periodos_completos:
         raise HTTPException(status_code=400, detail="La carga no trae contratos.")
     return procesar_carga_buk(carga)
 

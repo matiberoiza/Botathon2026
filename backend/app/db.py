@@ -20,7 +20,7 @@ def obtener_engine() -> Engine:
         config.DB_RUTA.parent.mkdir(parents=True, exist_ok=True)
         _engine = create_engine(
             f"sqlite:///{config.DB_RUTA}",
-            connect_args={"check_same_thread": False},  # FastAPI atiende peticiones en varios hilos
+            connect_args={"check_same_thread": False, "timeout": 30},  # espera cargas concurrentes breves
         )
 
         @event.listens_for(_engine, "connect")
@@ -45,6 +45,13 @@ def crear_tablas_si_no_existen() -> bool:
     """Crea las tablas desde docs/esquema.sql si la base está vacía. Devuelve True si las creó."""
     engine = obtener_engine()
     if inspect(engine).has_table("institutos"):
+        # Migración aditiva: conserva todas las filas de las bases ya creadas.
+        with engine.begin() as c:
+            columnas = {f[1] for f in c.execute(text("PRAGMA table_info(cargas)"))}
+            if "hash_payload" not in columnas:
+                c.execute(text("ALTER TABLE cargas ADD COLUMN hash_payload TEXT"))
+            if "periodos_completos" not in columnas:
+                c.execute(text("ALTER TABLE cargas ADD COLUMN periodos_completos TEXT NOT NULL DEFAULT '[]'"))
         return False
     conexion = engine.raw_connection()
     try:
