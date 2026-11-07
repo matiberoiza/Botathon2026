@@ -58,7 +58,7 @@ Casos especiales: multi-instituto (hoja Excepciones), reemplazos y plazo fijo, v
 - Código simple y con comentarios en español: el equipo tiene que poder explicarlo ante el jurado.
 - Antes de un cambio grande, propón el plan y espera confirmación.
 - **`CONTEXTO.md` (raíz del proyecto) es el resumen vivo de todo lo hecho y decidido.** Léelo al empezar una sesión. Cada vez que hagas algo en el proyecto o el usuario entregue información nueva (documentos, decisiones, roles, arquitectura), actualízalo en el mismo turno y agrega una línea a su registro de cambios.
-- **Git y GitHub:** no inicies un repositorio, no hagas commits ni crees el repo en GitHub hasta que el equipo revise el código y lo autorice explícitamente. Cuando se autorice, el `.gitignore` debe excluir `data/raw/`, `data/entrada/`, `.venv/`, `__pycache__/`, `.pytest_cache/`, `.env`, `node_modules/`, `dist/` y `.DS_Store`: los datos no se suben, aunque sean ficticios, y la cadena de conexión lleva contraseña.
+- **Git y GitHub:** autorizado por el equipo el 7 de noviembre de 2026. Repositorio público: https://github.com/matiberoiza/Botathon2026 (rama `main`). Haz commits o push solo cuando el usuario lo pida. El `.gitignore` excluye `data/raw/`, `data/entrada/`, `.venv/`, `__pycache__/`, `.pytest_cache/`, `.env`, `node_modules/`, `dist/` y `.DS_Store`: los datos no se suben, aunque sean ficticios, y la cadena de conexión lleva contraseña.
 - La ruta del archivo SQLite va en `backend/.env`; el `.db` no se sube a git. Rutas relativas; dependencias del backend en `requirements.txt` y del frontend en `frontend/package.json`.
 - Dashboard accesible (es un criterio del jurado): buen contraste, navegable con teclado y un resumen en lenguaje simple.
 
